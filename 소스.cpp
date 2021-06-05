@@ -2,6 +2,7 @@
 #include <TCHAR.H>
 #include <stdio.h>
 #include <stdlib.h>
+#include "resource.h"
 
 #pragma comment(linker, "/entry:WinMainCRTStartup /subsystem:console")	//콘솔창 띄움
 
@@ -24,7 +25,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	MSG msg;
 	WNDCLASS wndClass;
 	TCHAR className[11] = L"Class Name";
-	TCHAR titleName[10] = L"윈플 과제";
+	TCHAR titleName[10] = L"윈플 기말과제";
 	hInst = hInstance;
 
 	wndClass.style = CS_HREDRAW | CS_VREDRAW;
@@ -54,22 +55,31 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
 void OnTimer(HWND hWnd, struct Character player)		//메모리 디시를 이용해 hBit에 미리 그려 놓는 함수
 {
-	HDC hDC, hMemDC;
+	HDC hDC, hMemDC, hMemDC2;
 	HBITMAP oldBit;
 	RECT crt;
+	BITMAP bit;
+	static HBITMAP hPlayer[3];	//플레이어 이미지
 	static int xi = 5, yi;	//플레이어의 이동량
 	hDC = GetDC(hWnd);
 	GetClientRect(hWnd, &crt);	//화면의 정보를 구조체에다 담음
+	GetObject(hPlayer[0], sizeof(BITMAP), &bit);
+	const int R = crt.bottom / 10;
+	static int i;
 
-	const int R = crt.bottom / 20;
+	hPlayer[0] = (HBITMAP)LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP1));	//플레이어 이미지1
+	hPlayer[1] = (HBITMAP)LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP2));	//플레이어 이미지2
+	hPlayer[2] = (HBITMAP)LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP3));	//플레이어 이미지3
 
 	if (MakeBitmap == TRUE)
 	{
 		hBit = CreateCompatibleBitmap(hDC, crt.right, crt.bottom);	//화면 크기의 비트맵을 생성
 		MakeBitmap = FALSE;
 	}
+
 	hMemDC = CreateCompatibleDC(hDC);								//메모리디시에 만들어진 비트맵을 저장
 	oldBit = (HBITMAP)SelectObject(hMemDC, hBit);					//oldBit에 저장
+	hMemDC2 = CreateCompatibleDC(hDC);
 
 	xi += 10;	//10씩 증가
 	player.x += xi;	//위치에 이동거리를 더해줌
@@ -79,13 +89,19 @@ void OnTimer(HWND hWnd, struct Character player)		//메모리 디시를 이용해 hBit에 
 
 	FillRect(hMemDC, &crt, GetSysColorBrush(COLOR_WINDOW));
 
-	//ㅡㅡㅡ 화면에 그림을 그림 ㅡㅡㅡ
-	Ellipse(hMemDC, player.x - R, player.y - R, player.x + R, player.y + R);
-	printf("%d", player.x);
+	//ㅡㅡㅡ 화면에 플레이어 출력 ㅡㅡㅡ
+	SelectObject(hMemDC2, hPlayer[i%3]);
+	StretchBlt(hMemDC, player.x - R, player.y - R, 2 * R, 2 * R, hMemDC2, 0, 0, bit.bmWidth, bit.bmHeight, SRCCOPY);
+	i++;
+	//Ellipse(hMemDC, player.x - R, player.y - R, player.x + R, player.y + R);
+
+	//ㅡㅡㅡ 완성된 그림 출력 ㅡㅡㅡ
+	BitBlt(hDC, 0, 0, crt.right	, crt.bottom, hMemDC, 0, 0, SRCCOPY);
+
 	SelectObject(hMemDC, oldBit);
 	DeleteDC(hMemDC);
 	ReleaseDC(hWnd, hDC);
-	InvalidateRect(hWnd, NULL, FALSE);
+	//InvalidateRect(hWnd, NULL, FALSE);
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -118,7 +134,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_PAINT:
 		hDC = BeginPaint(hWnd, &ps);
-		if (hBit) DrawBitmap(hDC, 0, 0, hBit);		//DrawBitmap함수로 그려진 비트맵을 출력함
+		//if (hBit) DrawBitmap(hDC, 0, 0, hBit);		//DrawBitmap함수로 그려진 비트맵을 출력함
 		EndPaint(hWnd, &ps);
 		break;
 	case WM_DESTROY:
