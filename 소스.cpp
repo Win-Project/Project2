@@ -5,6 +5,7 @@
 #include "resource.h"
 
 #pragma comment(linker, "/entry:WinMainCRTStartup /subsystem:console")	//콘솔창 띄움
+#pragma comment(lib, "msimg32.lib")
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 void DrawBitmap(HDC hdc, int x, int y, HBITMAP hBit);
@@ -58,18 +59,23 @@ void OnTimer(HWND hWnd, struct Character player)		//메모리 디시를 이용해 hBit에 
 	HDC hDC, hMemDC, hMemDC2;
 	HBITMAP oldBit;
 	RECT crt;
-	BITMAP bit;
-	static HBITMAP hPlayer[3];	//플레이어 이미지
-	static int xi = 5, yi;	//플레이어의 이동량
+	BITMAP bit, fbit, backgroundBit;
+	static HBITMAP hPlayer[3],	//플레이어 이미지
+		hFloor, hBackground;	//바닥, 배경
+	static int xi, xj;	//플레이어의 이동량
 	hDC = GetDC(hWnd);
 	GetClientRect(hWnd, &crt);	//화면의 정보를 구조체에다 담음
-	GetObject(hPlayer[0], sizeof(BITMAP), &bit);
-	const int R = crt.bottom / 10;
-	static int i;
+	const int R = crt.bottom / 8;
+	static int i, w;
 
 	hPlayer[0] = (HBITMAP)LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP1));	//플레이어 이미지1
 	hPlayer[1] = (HBITMAP)LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP2));	//플레이어 이미지2
 	hPlayer[2] = (HBITMAP)LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP3));	//플레이어 이미지3
+	GetObject(hPlayer[0], sizeof(BITMAP), &bit);
+	hFloor = (HBITMAP)LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP4));	//바닥 이미지
+	GetObject(hFloor, sizeof(BITMAP), &fbit);
+	hBackground = (HBITMAP)LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP5));	//배경 이미지
+	GetObject(hBackground, sizeof(BITMAP), &backgroundBit);
 
 	if (MakeBitmap == TRUE)
 	{
@@ -81,18 +87,29 @@ void OnTimer(HWND hWnd, struct Character player)		//메모리 디시를 이용해 hBit에 
 	oldBit = (HBITMAP)SelectObject(hMemDC, hBit);					//oldBit에 저장
 	hMemDC2 = CreateCompatibleDC(hDC);
 
-	xi += 10;	//10씩 증가
-	player.x += xi;	//위치에 이동거리를 더해줌
+	xi +=2;	//1씩 증가
+	xj += 6;
+	//if (player.x - R >= crt.right)
+	//	xi = -crt.right / 5 - R;
+	 
 
-	if (player.x - R >= crt.right)
-		xi = -crt.right / 5 - R;
-
-	FillRect(hMemDC, &crt, GetSysColorBrush(COLOR_WINDOW));
-
+	//ㅡㅡㅡ 화면에 배경 출력 ㅡㅡㅡ
+	SelectObject(hMemDC2, hBackground);
+	StretchBlt(hMemDC, -xi, 0, crt.right, crt.bottom, hMemDC2, 0, 0, backgroundBit.bmWidth, backgroundBit.bmHeight, SRCCOPY);
+	StretchBlt(hMemDC, crt.right-xi, 0, crt.right, crt.bottom, hMemDC2, 0, 0, backgroundBit.bmWidth, backgroundBit.bmHeight, SRCCOPY);
+	if (xi > crt.right)
+		xi = 0;
+	//ㅡㅡㅡ 화면에 바닥 출력 ㅡㅡㅡ
+	SelectObject(hMemDC2, hFloor);
+	TransparentBlt(hMemDC, -xj, player.y+R, crt.right, crt.bottom-player.y-R, hMemDC2, 0, 0, fbit.bmWidth/4*3, fbit.bmHeight, RGB(255, 0, 255));
+	TransparentBlt(hMemDC, crt.right - xj, player.y + R, crt.right, crt.bottom - player.y - R, hMemDC2, 0, 0, fbit.bmWidth / 4 * 3, fbit.bmHeight, RGB(255, 0, 255));
+	if (xj > crt.right)
+		xj = 0;
 	//ㅡㅡㅡ 화면에 플레이어 출력 ㅡㅡㅡ
 	SelectObject(hMemDC2, hPlayer[i%3]);
-	StretchBlt(hMemDC, player.x - R, player.y - R, 2 * R, 2 * R, hMemDC2, 0, 0, bit.bmWidth, bit.bmHeight, SRCCOPY);
+	TransparentBlt(hMemDC, player.x - R, player.y - R, 2 * R, 2 * R, hMemDC2, 0, 0, bit.bmWidth, bit.bmHeight, RGB(255,0,255));
 	i++;
+
 	//Ellipse(hMemDC, player.x - R, player.y - R, player.x + R, player.y + R);
 
 	//ㅡㅡㅡ 완성된 그림 출력 ㅡㅡㅡ
@@ -103,6 +120,10 @@ void OnTimer(HWND hWnd, struct Character player)		//메모리 디시를 이용해 hBit에 
 	ReleaseDC(hWnd, hDC);
 	//InvalidateRect(hWnd, NULL, FALSE);
 }
+
+//캐릭터한테 중력생기게 하기.
+//장애물, 아이템 지정한 패턴대로 나오게하는 방법 알아내기. 
+//느려지는 원인 찾기
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
