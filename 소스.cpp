@@ -8,14 +8,13 @@
 #pragma comment(lib, "msimg32.lib")
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
-//void DrawBitmap(HDC hdc, int x, int y, HBITMAP hBit);
 void OnTimer(HWND, struct Character);		//메모리 디시를 이용해 hBit에 미리 그려 놓는 함수
 HINSTANCE hInst;
 BOOL MakeBitmap;
 HBITMAP hPlayer[3],	//플레이어 이미지
 hFloor, hBackground;	//바닥, 배경
 BITMAP bit, fbit, backgroundBit;
-
+int yi;
 
 struct Character
 {
@@ -66,13 +65,8 @@ void OnTimer(HWND hWnd, struct Character player)		//메모리 디시를 이용해 hBit에 
 	hDC = GetDC(hWnd);
 	GetClientRect(hWnd, &crt);	//화면의 정보를 구조체에다 담음
 	const int R = crt.bottom / 8;
-	static int i, w;
-
-	//if (MakeBitmap == TRUE)
-	//{
-		hBit = CreateCompatibleBitmap(hDC, crt.right, crt.bottom);	//화면 크기의 비트맵을 생성
-	//	MakeBitmap = FALSE;
-	//}
+	static int i, w, ay;
+	hBit = CreateCompatibleBitmap(hDC, crt.right, crt.bottom);	//화면 크기의 비트맵을 생성
 
 	hMemDC = CreateCompatibleDC(hDC);								//메모리디시에 만들어진 비트맵을 저장
 	hOldBit = (HBITMAP)SelectObject(hMemDC, hBit);					//oldBit에 저장
@@ -82,7 +76,7 @@ void OnTimer(HWND hWnd, struct Character player)		//메모리 디시를 이용해 hBit에 
 	xj += 10;
 	//if (player.x - R >= crt.right)
 	//	xi = -crt.right / 5 - R;
-	 
+	ay ++;
 
 	//ㅡㅡㅡ 화면에 배경 출력 ㅡㅡㅡ
 	SelectObject(hMemDC2, hBackground);
@@ -97,6 +91,16 @@ void OnTimer(HWND hWnd, struct Character player)		//메모리 디시를 이용해 hBit에 
 	if (xj > crt.right)
 		xj = 0;
 	//ㅡㅡㅡ 화면에 플레이어 출력 ㅡㅡㅡ
+	if (yi < 0)
+	{
+		yi += ay;
+		player.y += yi;
+	}
+	else
+	{
+		ay = 0;
+		yi = 0;
+	}
 	SelectObject(hMemDC2, hPlayer[i%3]);
 	TransparentBlt(hMemDC, player.x - R, player.y - R, 2 * R, 2 * R, hMemDC2, 0, 0, bit.bmWidth, bit.bmHeight, RGB(255,0,255));
 	i++;
@@ -154,7 +158,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_TIMER:
 		OnTimer(hWnd, player);	//OnTimer함수 호출
 		break;
-	case WM_PAINT:
+	case WM_LBUTTONDOWN:
+		yi=-100;
 		break;
 	case WM_DESTROY:
 		PostQuitMessage(0);
@@ -163,23 +168,3 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	return(DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
-//
-//void DrawBitmap(HDC hdc, int x, int y, HBITMAP hBit)
-//{
-//	HDC MemDC;
-//	HBITMAP OldBitmap;
-//	int bx, by;
-//	BITMAP bit;
-//
-//	MemDC = CreateCompatibleDC(hdc);
-//	OldBitmap = (HBITMAP)SelectObject(MemDC, hBit);
-//
-//	GetObject(hBit, sizeof(BITMAP), &bit);
-//	bx = bit.bmWidth;
-//	by = bit.bmHeight;
-//
-//	BitBlt(hdc, x, y, bx, by, MemDC, 0, 0, SRCCOPY);
-//
-//	SelectObject(MemDC, OldBitmap);
-//	DeleteDC(MemDC);
-//}
