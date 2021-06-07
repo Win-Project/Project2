@@ -30,22 +30,19 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\Floor.bmp">
+    <Image Include="Resource\bitmap1.bmp">
       <Filter>리소스 파일</Filter>
     </Image>
-    <Image Include="..\bitmap5.bmp">
+    <Image Include="Resource\bitmap2.bmp">
       <Filter>리소스 파일</Filter>
     </Image>
-    <Image Include="..\Floor_Default.bmp">
+    <Image Include="Resource\bitmap3.bmp">
       <Filter>리소스 파일</Filter>
     </Image>
-    <Image Include="..\bitmap1.bmp">
+    <Image Include="Resource\Floor_Default.bmp">
       <Filter>리소스 파일</Filter>
     </Image>
-    <Image Include="..\bitmap2.bmp">
-      <Filter>리소스 파일</Filter>
-    </Image>
-    <Image Include="..\bitmap3.bmp">
+    <Image Include="Resource\bitmap5.bmp">
       <Filter>리소스 파일</Filter>
     </Image>
   </ItemGroup>

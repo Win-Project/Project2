@@ -50,15 +50,15 @@ END
 // Bitmap
 //
 
-IDB_BITMAP5             BITMAP                  "c:\\users\\조명주\\desktop\\bitmap5.bmp"
+IDB_BITMAP1             BITMAP                  "Resource\\bitmap1.bmp"
 
-IDB_BITMAP4             BITMAP                  "C:\\Users\\조명주\\Desktop\\Floor_Default.bmp"
+IDB_BITMAP2             BITMAP                  "Resource\\bitmap2.bmp"
 
-IDB_BITMAP1             BITMAP                  "c:\\users\\조명주\\desktop\\bitmap1.bmp"
+IDB_BITMAP3             BITMAP                  "Resource\\bitmap3.bmp"
 
-IDB_BITMAP2             BITMAP                  "c:\\users\\조명주\\desktop\\bitmap2.bmp"
+IDB_BITMAP4             BITMAP                  "Resource\\Floor_Default.bmp"
 
-IDB_BITMAP3             BITMAP                  "c:\\users\\조명주\\desktop\\bitmap3.bmp"
+IDB_BITMAP5             BITMAP                  "Resource\\bitmap5.bmp"
 
 #endif    // 한국어(대한민국) resources
 /////////////////////////////////////////////////////////////////////////////
