@@ -9,6 +9,7 @@
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 void OnTimer(HWND, struct Character);		//메모리 디시를 이용해 hBit에 미리 그려 놓는 함수
+BOOL GameOver();
 HINSTANCE hInst;
 BOOL MakeBitmap;
 HBITMAP hPlayer[3],	//플레이어 이미지
@@ -61,10 +62,10 @@ void OnTimer(HWND hWnd, struct Character player)		//메모리 디시를 이용해 hBit에 
 	HDC hDC, hMemDC, hMemDC2;
 	static HBITMAP hOldBit, hBit;
 	RECT crt;
-	static int xi, xj;	//플레이어의 이동량
+	static int xi, Floor1x, Floor2x;	//플레이어의 이동량
 	hDC = GetDC(hWnd);
 	GetClientRect(hWnd, &crt);	//화면의 정보를 구조체에다 담음
-	const int R = crt.bottom / 8;
+	const int R = crt.bottom / 8, Hole = crt.bottom/4;
 	static int i, w, ay;
 	hBit = CreateCompatibleBitmap(hDC, crt.right, crt.bottom);	//화면 크기의 비트맵을 생성
 
@@ -73,7 +74,9 @@ void OnTimer(HWND hWnd, struct Character player)		//메모리 디시를 이용해 hBit에 
 	hMemDC2 = CreateCompatibleDC(hDC);
 
 	xi +=5;	//1씩 증가
-	xj += 10;
+	Floor1x-= 10;
+	Floor2x -= 10;
+
 	//if (player.x - R >= crt.right)
 	//	xi = -crt.right / 5 - R;
 	ay ++;
@@ -86,12 +89,16 @@ void OnTimer(HWND hWnd, struct Character player)		//메모리 디시를 이용해 hBit에 
 		xi = 0;
 	//ㅡㅡㅡ 화면에 바닥 출력 ㅡㅡㅡ
 	SelectObject(hMemDC2, hFloor);
-	TransparentBlt(hMemDC, -xj, player.y+R, crt.right, crt.bottom-player.y-R, hMemDC2, 0, 0, fbit.bmWidth/4*3, fbit.bmHeight, RGB(255, 0, 255));
-	TransparentBlt(hMemDC, crt.right - xj, player.y + R, crt.right, crt.bottom - player.y - R, hMemDC2, 0, 0, fbit.bmWidth / 4 * 3, fbit.bmHeight, RGB(255, 0, 255));
-	if (xj > crt.right)
-		xj = 0;
+	if (Floor1x + crt.right < crt.right)
+		Floor2x = Floor1x + crt.right + Hole;
+	if(Floor2x + crt.right<crt.right)
+		Floor1x = Floor2x + crt.right + Hole;
+
+	TransparentBlt(hMemDC, Floor1x, player.y+R, crt.right, crt.bottom-player.y-R, hMemDC2, 0, 0, fbit.bmWidth/4*3, fbit.bmHeight, RGB(255, 0, 255));
+	TransparentBlt(hMemDC, Floor2x, player.y + R, crt.right, crt.bottom - player.y - R, hMemDC2, 0, 0, fbit.bmWidth / 4 * 3, fbit.bmHeight, RGB(255, 0, 255));
+
 	//ㅡㅡㅡ 화면에 플레이어 출력 ㅡㅡㅡ
-	if (yi < 0)
+	if (yi < 0)	//점프 중력작용, 바닥과의 충돌판정
 	{
 		yi += ay;
 		player.y += yi;
@@ -106,7 +113,11 @@ void OnTimer(HWND hWnd, struct Character player)		//메모리 디시를 이용해 hBit에 
 	i++;
 
 	DeleteDC(hMemDC2);
-
+	//ㅡㅡㅡ게임 오버 ㅡㅡㅡ
+	if (GameOver() == TRUE)
+	{
+		KillTimer(hWnd, 1);
+	}
 	//ㅡㅡㅡ 완성된 그림 출력 ㅡㅡㅡ
 	BitBlt(hDC, 0, 0, crt.right	, crt.bottom, hMemDC, 0, 0, SRCCOPY);
 
@@ -167,4 +178,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		break;
 	}
 	return(DefWindowProc(hWnd, uMsg, wParam, lParam));
+}
+
+BOOL GameOver()
+{
+	return FALSE;
 }
