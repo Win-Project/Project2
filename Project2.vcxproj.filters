@@ -45,5 +45,16 @@
     <Image Include="Resource\bitmap5.bmp">
       <Filter>리소스 파일</Filter>
     </Image>
+    <Image Include="resource\bitmap6.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Media Include="Resource\브금 후보2 (online-audio-converter.com).wav">
+      <Filter>리소스 파일</Filter>
+    </Media>
+    <Media Include="Resource\사망 효과음 (online-audio-converter.com).wav">
+      <Filter>리소스 파일</Filter>
+    </Media>
   </ItemGroup>
 </Project>

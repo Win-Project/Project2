@@ -60,6 +60,18 @@ IDB_BITMAP4             BITMAP                  "Resource\\Floor_Default.bmp"
 
 IDB_BITMAP5             BITMAP                  "Resource\\bitmap5.bmp"
 
+IDB_BITMAP6             BITMAP                  "resource\\bitmap6.bmp"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// WAVE
+//
+
+IDR_WAVE1               WAVE                    "Resource\\브금 후보2 (online-audio-converter.com).wav"
+
+IDR_WAVE2               WAVE                    "Resource\\사망 효과음 (online-audio-converter.com).wav"
+
 #endif    // 한국어(대한민국) resources
 /////////////////////////////////////////////////////////////////////////////
 

@@ -6,9 +6,12 @@
 
 #pragma comment(linker, "/entry:WinMainCRTStartup /subsystem:console")	//콘솔창 띄움
 #pragma comment(lib, "msimg32.lib")
+#pragma comment(lib,"winmm.lib")
+
+#define itemNum 8	//한 화면에 출력되는 아이템 개수
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
-void OnTimer(HWND, struct Character, BOOL*);		//메모리 디시를 이용해 hBit에 미리 그려 놓는 함수
+void OnTimer(HWND, struct Character, BOOL*, struct Item**);		//메모리 디시를 이용해 hBit에 미리 그려 놓는 함수
 BOOL CheckCollision(int n1, int n2, int m1, int m2);
 void Gravity(struct Character* player, int t);
 BOOL GameOver(int );
@@ -16,14 +19,19 @@ BOOL GameOver(int );
 HINSTANCE hInst;
 BOOL MakeBitmap;
 HBITMAP hPlayer[3],	//플레이어 이미지
-hFloor, hBackground;	//바닥, 배경
-BITMAP bit, fbit, backgroundBit;
+hFloor, hBackground,	//바닥, 배경
+hItem;					//아이템
+BITMAP bit, fbit, backgroundBit, itemBit;
 
 struct Character
 {
 	int x, y;	//캐릭터의 좌표값
 };
 
+struct Item
+{
+	int x, y;
+};
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	LPSTR lpszCmdLine, int nCmdShow)
 {
@@ -59,7 +67,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 }
 
 
-void OnTimer(HWND hWnd, struct Character player, BOOL* Jump)		//메모리 디시를 이용해 hBit에 미리 그려 놓는 함수
+void OnTimer(HWND hWnd, struct Character player, BOOL* Jump, struct Item** itemPos)		//메모리 디시를 이용해 hBit에 미리 그려 놓는 함수
 {
 	HDC hDC, hMemDC, hMemDC2;
 	static HBITMAP hOldBit, hBit;
@@ -67,9 +75,10 @@ void OnTimer(HWND hWnd, struct Character player, BOOL* Jump)		//메모리 디시를 이
 	static int xi, Floor1X, Floor2X, FloorY;	//플레이어의 이동량
 	hDC = GetDC(hWnd);
 	GetClientRect(hWnd, &crt);	//화면의 정보를 구조체에다 담음
-	const int R = crt.bottom / 8, Hole = crt.bottom/2;
+	const int R = crt.bottom / 8, Hole = crt.bottom/3;
 	static int i, w, time, t, yi;
 	static BOOL GRAVITY = FALSE;
+
 	hBit = CreateCompatibleBitmap(hDC, crt.right, crt.bottom);	//화면 크기의 비트맵을 생성
 
 	hMemDC = CreateCompatibleDC(hDC);								//메모리디시에 만들어진 비트맵을 저장
@@ -77,8 +86,9 @@ void OnTimer(HWND hWnd, struct Character player, BOOL* Jump)		//메모리 디시를 이
 	hMemDC2 = CreateCompatibleDC(hDC);
 
 	xi +=5;	//1씩 증가
-	Floor1X-= 10;
+	Floor1X -= 10;
 	Floor2X -= 10;
+
 	//ㅡㅡㅡ 화면에 배경 출력 ㅡㅡㅡ
 	SelectObject(hMemDC2, hBackground);
 	StretchBlt(hMemDC, -xi, 0, crt.right, crt.bottom, hMemDC2, 0, 0, backgroundBit.bmWidth, backgroundBit.bmHeight, SRCCOPY);
@@ -98,6 +108,17 @@ void OnTimer(HWND hWnd, struct Character player, BOOL* Jump)		//메모리 디시를 이
 	TransparentBlt(hMemDC, Floor1X, FloorY, crt.right, crt.bottom- FloorY, hMemDC2, 0, 0, fbit.bmWidth/4*3, fbit.bmHeight, RGB(255, 0, 255));
 	TransparentBlt(hMemDC, Floor2X, FloorY, crt.right, crt.bottom - FloorY, hMemDC2, 0, 0, fbit.bmWidth / 4 * 3, fbit.bmHeight, RGB(255, 0, 255));
 
+	//ㅡㅡㅡ 화면에 아이템 출력 ㅡㅡㅡ
+
+	SelectObject(hMemDC2, hItem);
+
+	for (int i = 0; i < itemNum+1; ++i)
+	{
+		(*itemPos)[i].x -= 10;
+		if ((*itemPos)[i].x < 0 - R)
+			(*itemPos)[i].x = crt.right+R/2;
+		TransparentBlt(hMemDC, (*itemPos)[i].x, FloorY-R, R, R, hMemDC2, 0, 0, itemBit.bmWidth, itemBit.bmHeight, RGB(255, 0, 255));	//아이템 출력
+	}
 	//ㅡㅡㅡ 화면에 플레이어 출력 ㅡㅡㅡ
 	if (CheckCollision(player.x, player.x, Floor1X, Floor1X + crt.right) ||	//바닥과의 충돌판정
 		CheckCollision(player.x, player.x, Floor2X, Floor2X + crt.right))
@@ -111,7 +132,6 @@ void OnTimer(HWND hWnd, struct Character player, BOOL* Jump)		//메모리 디시를 이
 		GRAVITY = FALSE;
 		t++;
 		yi = -40 * t + 5 * t * t / 2;
-		printf("%d ", yi);
 		player.y += yi;
 		if (yi == 0)
 		{
@@ -120,7 +140,6 @@ void OnTimer(HWND hWnd, struct Character player, BOOL* Jump)		//메모리 디시를 이
 			t = 0;
 		}
 	}
-
 
 	if (GRAVITY == TRUE)	//중력작용
 		Gravity(&player, time++);
@@ -135,6 +154,7 @@ void OnTimer(HWND hWnd, struct Character player, BOOL* Jump)		//메모리 디시를 이
 	if (GameOver(player.y) == TRUE)
 	{
 		KillTimer(hWnd, 1);
+		PlaySound(MAKEINTRESOURCE(IDR_WAVE2), hInst, SND_RESOURCE | SND_ASYNC);
 		time = 0;
 	}
 	//ㅡㅡㅡ 완성된 그림 출력 ㅡㅡㅡ
@@ -147,9 +167,7 @@ void OnTimer(HWND hWnd, struct Character player, BOOL* Jump)		//메모리 디시를 이
 	//InvalidateRect(hWnd, NULL, FALSE);
 }
 
-//캐릭터한테 중력생기게 하기.
-//장애물, 아이템 지정한 패턴대로 나오게하는 방법 알아내기. 
-//느려지는 원인 찾기
+//장애물, 아이템 지정한 패턴대로 나오게하는 방법 알아내기.
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -158,6 +176,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	RECT rt;
 	static struct Character player;
 	static BOOL Jump = FALSE;
+	static Item* itemPos = (Item*)malloc(sizeof(Item) * (itemNum + 1));
+
 	switch (uMsg)
 	{
 	case WM_SIZE:	//윈도우 크기가 변경될때마다 리소스들의 좌표값을 재서정
@@ -175,12 +195,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		GetObject(hFloor, sizeof(BITMAP), &fbit);
 		hBackground = (HBITMAP)LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP5));	//배경 이미지
 		GetObject(hBackground, sizeof(BITMAP), &backgroundBit);
+		hItem = (HBITMAP)LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP6));	//아이템 이미지
+		GetObject(hItem, sizeof(BITMAP), &itemBit);
+
+		for (int i = 0; i <=itemNum; ++i)
+			itemPos[i].x = rt.right / itemNum * i;	//아이템의 위치 정하기
+
 		break;
 	case WM_CHAR:
 		switch (wParam)
 		{
 		case 's':
 		case 'S':
+			PlaySound(MAKEINTRESOURCE(IDR_WAVE1), hInst, SND_RESOURCE | SND_ASYNC);
 			SetTimer(hWnd, 1, 25, NULL);	//타이머 번호, 주기, 타이머 함수
 			break;
 		case 'q':
@@ -188,12 +215,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		}
 		break;
 	case WM_TIMER:
-		OnTimer(hWnd, player, &Jump);	//OnTimer함수 호출
+		OnTimer(hWnd, player, &Jump, &itemPos);	//OnTimer함수 호출
 		break;
 	case WM_LBUTTONDOWN:
 		Jump = TRUE;
 		break;
 	case WM_DESTROY:
+		free(itemPos);
 		PostQuitMessage(0);
 		KillTimer(hWnd, 1);
 		break;
