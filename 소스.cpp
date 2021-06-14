@@ -88,7 +88,7 @@ void OnTimer(HWND hWnd, struct Character player, BOOL* Jump, struct Item** itemP
 	hMemDC2 = CreateCompatibleDC(hDC);
 
 	xi +=5;	//1씩 증가
-	Floor1X -= 10;
+	Floor1X -= 10;	//바닥속도
 	Floor2X -= 10;
 
 	//ㅡㅡㅡ 화면에 배경 출력 ㅡㅡㅡ
@@ -143,7 +143,7 @@ void OnTimer(HWND hWnd, struct Character player, BOOL* Jump, struct Item** itemP
 
 	for (int i = 0; i < itemNum + 1; ++i)
 	{
-		(*itemPos)[i].x -= 10;
+		(*itemPos)[i].x -= 10;		//아이템 속도 -바닥속도와 동일
 		if ((*itemPos)[i].x < 0 - R)
 		{
 			(*itemPos)[i].x = crt.right + R;
@@ -261,7 +261,6 @@ BOOL CheckCollision(int n1, int n2, int m1, int m2)
 	return Collision;
 }
 
-
 void Gravity(struct Character* player, int t)
 {
 	player->y += 5 * t * t / 2;	//이동거리 계산
@@ -269,9 +268,6 @@ void Gravity(struct Character* player, int t)
 
 void ItemCollision(struct Item* item, struct Character player, int R)
 {
-	//printf("%d %d %d %d\n", item.x, player.x, item.y, player.y);
-	//printf("%d %d\n", R * R * 9 / 4, (item.x - player.x) * (item.x - player.x) + (item.y - player.y) * (item.y - player.y));
 	if ((R * R * 9 / 4) >= ((item->x - player.x) * (item->x - player.x) + (item->y - player.y) * (item->y - player.y)))
 		item->visible = FALSE;
-
 }
