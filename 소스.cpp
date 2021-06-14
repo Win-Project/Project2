@@ -4,12 +4,15 @@
 #include <stdlib.h>
 #include "resource.h"
 
-//#pragma comment(linker, "/entry:WinMainCRTStartup /subsystem:console")	//콘솔창 띄움
+#pragma comment(linker, "/entry:WinMainCRTStartup /subsystem:console")	//콘솔창 띄움
 #pragma comment(lib, "msimg32.lib")
+#define g 10;
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 void OnTimer(HWND, struct Character);		//메모리 디시를 이용해 hBit에 미리 그려 놓는 함수
-BOOL GameOver();
+BOOL CheckCollision(int n1, int n2, int m1, int m2);
+BOOL GameOver(int );
+
 HINSTANCE hInst;
 BOOL MakeBitmap;
 HBITMAP hPlayer[3],	//플레이어 이미지
@@ -62,11 +65,12 @@ void OnTimer(HWND hWnd, struct Character player)		//메모리 디시를 이용해 hBit에 
 	HDC hDC, hMemDC, hMemDC2;
 	static HBITMAP hOldBit, hBit;
 	RECT crt;
-	static int xi, Floor1x, Floor2x;	//플레이어의 이동량
+	static int xi, Floor1X, Floor2X, FloorY;	//플레이어의 이동량
 	hDC = GetDC(hWnd);
 	GetClientRect(hWnd, &crt);	//화면의 정보를 구조체에다 담음
-	const int R = crt.bottom / 8, Hole = crt.bottom/4;
-	static int i, w, ay;
+	const int R = crt.bottom / 8, Hole = crt.bottom/2;
+	static int i, w;
+	static int time, v, s;	//시간, 처음속도, 이동거리
 	hBit = CreateCompatibleBitmap(hDC, crt.right, crt.bottom);	//화면 크기의 비트맵을 생성
 
 	hMemDC = CreateCompatibleDC(hDC);								//메모리디시에 만들어진 비트맵을 저장
@@ -74,47 +78,51 @@ void OnTimer(HWND hWnd, struct Character player)		//메모리 디시를 이용해 hBit에 
 	hMemDC2 = CreateCompatibleDC(hDC);
 
 	xi +=5;	//1씩 증가
-	Floor1x-= 10;
-	Floor2x -= 10;
-
-	//if (player.x - R >= crt.right)
-	//	xi = -crt.right / 5 - R;
-	ay ++;
-
+	Floor1X-= 10;
+	Floor2X -= 10;
 	//ㅡㅡㅡ 화면에 배경 출력 ㅡㅡㅡ
 	SelectObject(hMemDC2, hBackground);
 	StretchBlt(hMemDC, -xi, 0, crt.right, crt.bottom, hMemDC2, 0, 0, backgroundBit.bmWidth, backgroundBit.bmHeight, SRCCOPY);
 	StretchBlt(hMemDC, crt.right-xi, 0, crt.right, crt.bottom, hMemDC2, 0, 0, backgroundBit.bmWidth, backgroundBit.bmHeight, SRCCOPY);
 	if (xi > crt.right)
 		xi = 0;
-	//ㅡㅡㅡ 화면에 바닥 출력 ㅡㅡㅡ
-	SelectObject(hMemDC2, hFloor);
-	if (Floor1x + crt.right < crt.right)
-		Floor2x = Floor1x + crt.right + Hole;
-	if(Floor2x + crt.right<crt.right)
-		Floor1x = Floor2x + crt.right + Hole;
 
-	TransparentBlt(hMemDC, Floor1x, player.y+R, crt.right, crt.bottom-player.y-R, hMemDC2, 0, 0, fbit.bmWidth/4*3, fbit.bmHeight, RGB(255, 0, 255));
-	TransparentBlt(hMemDC, Floor2x, player.y + R, crt.right, crt.bottom - player.y - R, hMemDC2, 0, 0, fbit.bmWidth / 4 * 3, fbit.bmHeight, RGB(255, 0, 255));
+	//ㅡㅡㅡ 화면에 바닥 출력 ㅡㅡㅡ
+	FloorY = player.y + R;
+
+	SelectObject(hMemDC2, hFloor);
+	if (Floor1X + crt.right < crt.right)
+		Floor2X = Floor1X + crt.right + Hole;
+	if(Floor2X + crt.right<crt.right)
+		Floor1X = Floor2X + crt.right + Hole;
+
+	TransparentBlt(hMemDC, Floor1X, FloorY, crt.right, crt.bottom- FloorY, hMemDC2, 0, 0, fbit.bmWidth/4*3, fbit.bmHeight, RGB(255, 0, 255));
+	TransparentBlt(hMemDC, Floor2X, FloorY, crt.right, crt.bottom - FloorY, hMemDC2, 0, 0, fbit.bmWidth / 4 * 3, fbit.bmHeight, RGB(255, 0, 255));
+
+	//ㅡㅡㅡ 점프 ㅡㅡㅡ
+	player.y += yi;
+
 
 	//ㅡㅡㅡ 화면에 플레이어 출력 ㅡㅡㅡ
-	if (yi < 0)	//점프 중력작용, 바닥과의 충돌판정
+	if (CheckCollision(player.x - (R / 2), player.x + (R / 2), Floor1X, Floor1X + crt.right)
+		&& CheckCollision(player.x - (R / 2), player.x + (R / 2), Floor2X, Floor2X + crt.right))	//바닥과의 충돌판정
 	{
-		yi += ay;
-		player.y += yi;
+		time++;			//떨어지는 시간 계산
+		s = v * time + 10 * time * time / 2;	//이동거리 계산
+		player.y += s;	//아래로의 이동거리
 	}
 	else
 	{
-		ay = 0;
-		yi = 0;
+		time = 0;	//시간 초기화
 	}
+	
 	SelectObject(hMemDC2, hPlayer[i%3]);
 	TransparentBlt(hMemDC, player.x - R, player.y - R, 2 * R, 2 * R, hMemDC2, 0, 0, bit.bmWidth, bit.bmHeight, RGB(255,0,255));
 	i++;
 
 	DeleteDC(hMemDC2);
 	//ㅡㅡㅡ게임 오버 ㅡㅡㅡ
-	if (GameOver() == TRUE)
+	if (GameOver(player.y) == TRUE)
 	{
 		KillTimer(hWnd, 1);
 	}
@@ -152,7 +160,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		hPlayer[1] = (HBITMAP)LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP2));	//플레이어 이미지2
 		hPlayer[2] = (HBITMAP)LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP3));	//플레이어 이미지3
 		GetObject(hPlayer[0], sizeof(BITMAP), &bit);
-		hFloor = (HBITMAP)LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP4));	//바닥 이미지
+		hFloor = (HBITMAP)LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP4));		//바닥 이미지
 		GetObject(hFloor, sizeof(BITMAP), &fbit);
 		hBackground = (HBITMAP)LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP5));	//배경 이미지
 		GetObject(hBackground, sizeof(BITMAP), &backgroundBit);
@@ -164,13 +172,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case 'S':
 			SetTimer(hWnd, 1, 25, NULL);	//타이머 번호, 주기, 타이머 함수
 			break;
+		case 'q':
+			KillTimer(hWnd, 1);
 		}
 		break;
 	case WM_TIMER:
 		OnTimer(hWnd, player);	//OnTimer함수 호출
 		break;
 	case WM_LBUTTONDOWN:
-		yi=-100;
+		yi -= 100;
 		break;
 	case WM_DESTROY:
 		PostQuitMessage(0);
@@ -180,7 +190,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	return(DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
 
-BOOL GameOver()
+BOOL GameOver(int y)
 {
-	return FALSE;
+	BOOL GAMEOVER = FALSE;
+	if (y > 600)
+		GAMEOVER = TRUE;
+	return GAMEOVER;
+}
+
+BOOL CheckCollision(int n1, int n2, int m1, int m2)
+{
+	BOOL Collision = FALSE;
+	if (n1 > m2 || n2 < m1)
+		Collision = TRUE;
+
+	return Collision;
 }
