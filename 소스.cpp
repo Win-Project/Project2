@@ -15,6 +15,7 @@ void OnTimer(HWND, struct Character, BOOL*, struct Item**);		//메모리 디시를 이�
 BOOL CheckCollision(int n1, int n2, int m1, int m2);
 void Gravity(struct Character* player, int t);
 BOOL GameOver(int );
+void ItemCollision(struct Item* item, struct Character player, int R);	//아이템과 플레이어의 충돌을 감지하는 함수
 
 HINSTANCE hInst;
 BOOL MakeBitmap;
@@ -31,6 +32,7 @@ struct Character
 struct Item
 {
 	int x, y;
+	BOOL visible = TRUE;
 };
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	LPSTR lpszCmdLine, int nCmdShow)
@@ -108,18 +110,8 @@ void OnTimer(HWND hWnd, struct Character player, BOOL* Jump, struct Item** itemP
 	TransparentBlt(hMemDC, Floor1X, FloorY, crt.right, crt.bottom- FloorY, hMemDC2, 0, 0, fbit.bmWidth/4*3, fbit.bmHeight, RGB(255, 0, 255));
 	TransparentBlt(hMemDC, Floor2X, FloorY, crt.right, crt.bottom - FloorY, hMemDC2, 0, 0, fbit.bmWidth / 4 * 3, fbit.bmHeight, RGB(255, 0, 255));
 
-	//ㅡㅡㅡ 화면에 아이템 출력 ㅡㅡㅡ
 
-	SelectObject(hMemDC2, hItem);
-
-	for (int i = 0; i < itemNum+1; ++i)
-	{
-		(*itemPos)[i].x -= 10;
-		if ((*itemPos)[i].x < 0 - R)
-			(*itemPos)[i].x = crt.right+R/2;
-		TransparentBlt(hMemDC, (*itemPos)[i].x, FloorY-R, R, R, hMemDC2, 0, 0, itemBit.bmWidth, itemBit.bmHeight, RGB(255, 0, 255));	//아이템 출력
-	}
-	//ㅡㅡㅡ 화면에 플레이어 출력 ㅡㅡㅡ
+	//ㅡㅡㅡ 플레이어 위치 지정 ㅡㅡㅡ
 	if (CheckCollision(player.x, player.x, Floor1X, Floor1X + crt.right) ||	//바닥과의 충돌판정
 		CheckCollision(player.x, player.x, Floor2X, Floor2X + crt.right))
 		GRAVITY = FALSE;	//바닥두개중 하나라도 충돌했다면 떨어지지 않음
@@ -145,6 +137,26 @@ void OnTimer(HWND hWnd, struct Character player, BOOL* Jump, struct Item** itemP
 		Gravity(&player, time++);
 	else time = 0;
 
+	//ㅡㅡㅡ 화면에 아이템 출력 ㅡㅡㅡ
+
+	SelectObject(hMemDC2, hItem);
+
+	for (int i = 0; i < itemNum + 1; ++i)
+	{
+		(*itemPos)[i].x -= 10;
+		if ((*itemPos)[i].x < 0 - R)
+		{
+			(*itemPos)[i].x = crt.right + R;
+			(*itemPos)[i].visible = TRUE;
+		}
+
+		ItemCollision(&(*itemPos)[i], player, R);	//충돌체크
+
+		if ((*itemPos)[i].visible)
+			TransparentBlt(hMemDC, (*itemPos)[i].x, (*itemPos)[i].y, R, R, hMemDC2, 0, 0, itemBit.bmWidth, itemBit.bmHeight, RGB(255, 0, 255));	//아이템 출력
+	}
+
+	//ㅡㅡㅡ 플레이어 출력 ㅡㅡㅡ
 	SelectObject(hMemDC2, hPlayer[i%3]);
 	TransparentBlt(hMemDC, player.x - R, player.y - R, 2 * R, 2 * R, hMemDC2, 0, 0, bit.bmWidth, bit.bmHeight, RGB(255,0,255));
 	i++;
@@ -198,9 +210,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		hItem = (HBITMAP)LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP6));	//아이템 이미지
 		GetObject(hItem, sizeof(BITMAP), &itemBit);
 
-		for (int i = 0; i <=itemNum; ++i)
+		for (int i = 0; i <= itemNum; ++i)
+		{
 			itemPos[i].x = rt.right / itemNum * i;	//아이템의 위치 정하기
-
+			itemPos[i].y = player.y;
+		}
+		itemPos[0].y = 100;
 		break;
 	case WM_CHAR:
 		switch (wParam)
@@ -250,4 +265,13 @@ BOOL CheckCollision(int n1, int n2, int m1, int m2)
 void Gravity(struct Character* player, int t)
 {
 	player->y += 5 * t * t / 2;	//이동거리 계산
+}
+
+void ItemCollision(struct Item* item, struct Character player, int R)
+{
+	//printf("%d %d %d %d\n", item.x, player.x, item.y, player.y);
+	//printf("%d %d\n", R * R * 9 / 4, (item.x - player.x) * (item.x - player.x) + (item.y - player.y) * (item.y - player.y));
+	if ((R * R * 9 / 4) >= ((item->x - player.x) * (item->x - player.x) + (item->y - player.y) * (item->y - player.y)))
+		item->visible = FALSE;
+
 }
