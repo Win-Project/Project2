@@ -6,11 +6,11 @@
 
 #pragma comment(linker, "/entry:WinMainCRTStartup /subsystem:console")	//콘솔창 띄움
 #pragma comment(lib, "msimg32.lib")
-#define g 10;
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
-void OnTimer(HWND, struct Character);		//메모리 디시를 이용해 hBit에 미리 그려 놓는 함수
+void OnTimer(HWND, struct Character, BOOL*);		//메모리 디시를 이용해 hBit에 미리 그려 놓는 함수
 BOOL CheckCollision(int n1, int n2, int m1, int m2);
+void Gravity(struct Character* player, int t);
 BOOL GameOver(int );
 
 HINSTANCE hInst;
@@ -18,7 +18,6 @@ BOOL MakeBitmap;
 HBITMAP hPlayer[3],	//플레이어 이미지
 hFloor, hBackground;	//바닥, 배경
 BITMAP bit, fbit, backgroundBit;
-int yi;
 
 struct Character
 {
@@ -60,7 +59,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 }
 
 
-void OnTimer(HWND hWnd, struct Character player)		//메모리 디시를 이용해 hBit에 미리 그려 놓는 함수
+void OnTimer(HWND hWnd, struct Character player, BOOL* Jump)		//메모리 디시를 이용해 hBit에 미리 그려 놓는 함수
 {
 	HDC hDC, hMemDC, hMemDC2;
 	static HBITMAP hOldBit, hBit;
@@ -69,8 +68,8 @@ void OnTimer(HWND hWnd, struct Character player)		//메모리 디시를 이용해 hBit에 
 	hDC = GetDC(hWnd);
 	GetClientRect(hWnd, &crt);	//화면의 정보를 구조체에다 담음
 	const int R = crt.bottom / 8, Hole = crt.bottom/2;
-	static int i, w;
-	static int time, v, s;	//시간, 처음속도, 이동거리
+	static int i, w, time, t, yi;
+	static BOOL GRAVITY = FALSE;
 	hBit = CreateCompatibleBitmap(hDC, crt.right, crt.bottom);	//화면 크기의 비트맵을 생성
 
 	hMemDC = CreateCompatibleDC(hDC);								//메모리디시에 만들어진 비트맵을 저장
@@ -99,23 +98,34 @@ void OnTimer(HWND hWnd, struct Character player)		//메모리 디시를 이용해 hBit에 
 	TransparentBlt(hMemDC, Floor1X, FloorY, crt.right, crt.bottom- FloorY, hMemDC2, 0, 0, fbit.bmWidth/4*3, fbit.bmHeight, RGB(255, 0, 255));
 	TransparentBlt(hMemDC, Floor2X, FloorY, crt.right, crt.bottom - FloorY, hMemDC2, 0, 0, fbit.bmWidth / 4 * 3, fbit.bmHeight, RGB(255, 0, 255));
 
-	//ㅡㅡㅡ 점프 ㅡㅡㅡ
-	player.y += yi;
-
-
 	//ㅡㅡㅡ 화면에 플레이어 출력 ㅡㅡㅡ
-	if (CheckCollision(player.x - (R / 2), player.x + (R / 2), Floor1X, Floor1X + crt.right)
-		&& CheckCollision(player.x - (R / 2), player.x + (R / 2), Floor2X, Floor2X + crt.right))	//바닥과의 충돌판정
-	{
-		time++;			//떨어지는 시간 계산
-		s = v * time + 10 * time * time / 2;	//이동거리 계산
-		player.y += s;	//아래로의 이동거리
-	}
+	if (CheckCollision(player.x, player.x, Floor1X, Floor1X + crt.right) ||	//바닥과의 충돌판정
+		CheckCollision(player.x, player.x, Floor2X, Floor2X + crt.right))
+		GRAVITY = FALSE;	//바닥두개중 하나라도 충돌했다면 떨어지지 않음
 	else
+		GRAVITY = TRUE;
+
+	//점프
+	if (*Jump==TRUE)
 	{
-		time = 0;	//시간 초기화
+		GRAVITY = FALSE;
+		t++;
+		yi = -40 * t + 5 * t * t / 2;
+		printf("%d ", yi);
+		player.y += yi;
+		if (yi == 0)
+		{
+			*Jump = FALSE;
+			GRAVITY = TRUE;
+			t = 0;
+		}
 	}
-	
+
+
+	if (GRAVITY == TRUE)	//중력작용
+		Gravity(&player, time++);
+	else time = 0;
+
 	SelectObject(hMemDC2, hPlayer[i%3]);
 	TransparentBlt(hMemDC, player.x - R, player.y - R, 2 * R, 2 * R, hMemDC2, 0, 0, bit.bmWidth, bit.bmHeight, RGB(255,0,255));
 	i++;
@@ -125,6 +135,7 @@ void OnTimer(HWND hWnd, struct Character player)		//메모리 디시를 이용해 hBit에 
 	if (GameOver(player.y) == TRUE)
 	{
 		KillTimer(hWnd, 1);
+		time = 0;
 	}
 	//ㅡㅡㅡ 완성된 그림 출력 ㅡㅡㅡ
 	BitBlt(hDC, 0, 0, crt.right	, crt.bottom, hMemDC, 0, 0, SRCCOPY);
@@ -146,7 +157,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	PAINTSTRUCT ps;
 	RECT rt;
 	static struct Character player;
-
+	static BOOL Jump = FALSE;
 	switch (uMsg)
 	{
 	case WM_SIZE:	//윈도우 크기가 변경될때마다 리소스들의 좌표값을 재서정
@@ -177,10 +188,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		}
 		break;
 	case WM_TIMER:
-		OnTimer(hWnd, player);	//OnTimer함수 호출
+		OnTimer(hWnd, player, &Jump);	//OnTimer함수 호출
 		break;
 	case WM_LBUTTONDOWN:
-		yi -= 100;
+		Jump = TRUE;
 		break;
 	case WM_DESTROY:
 		PostQuitMessage(0);
@@ -200,9 +211,15 @@ BOOL GameOver(int y)
 
 BOOL CheckCollision(int n1, int n2, int m1, int m2)
 {
-	BOOL Collision = FALSE;
+	BOOL Collision = TRUE;
 	if (n1 > m2 || n2 < m1)
-		Collision = TRUE;
+		Collision = FALSE;
 
 	return Collision;
+}
+
+
+void Gravity(struct Character* player, int t)
+{
+	player->y += 5 * t * t / 2;	//이동거리 계산
 }
