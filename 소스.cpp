@@ -47,7 +47,8 @@ struct Item
 struct Obstacle
 {
 	int x, y;
-	int obstaID;
+	int obstaID = 0;
+	int pos;
 };
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
@@ -84,7 +85,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	return (int)msg.wParam;
 }
 
-void OnTimer(HWND hWnd, struct Character player, BOOL* Jump, struct Item** itemPos, struct Obstacle* ob)		//메모리 디시를 이용해 hBit에 미리 그려 놓는 함수
+void OnTimer(HWND hWnd, struct Character player, BOOL* Jump, struct Item** itemPos, struct Obstacle** ob)		//메모리 디시를 이용해 hBit에 미리 그려 놓는 함수
 {
 	HDC hDC, hMemDC, hMemDC2;
 	static HBITMAP hOldBit, hBit;
@@ -109,6 +110,7 @@ void OnTimer(HWND hWnd, struct Character player, BOOL* Jump, struct Item** itemP
 	{
 		xi = 0, Floor1X = 0, Floor2X = 0, FloorY = 0;
 		i = 0, w = 0, time = 0, t = 0, yi = 0;
+		speed = 15;
 		ReStart = FALSE;
 	}
 	xi += 5;	//1씩 증가
@@ -205,18 +207,21 @@ void OnTimer(HWND hWnd, struct Character player, BOOL* Jump, struct Item** itemP
 	}
 
 	//ㅡㅡㅡ 화면에 장애물 출력 ㅡㅡㅡ
-	SelectObject(hMemDC2, hObstacle[(*ob).obstaID]);
+	for (int i = 0; i < 2; ++i)
+	{
+		SelectObject(hMemDC2, hObstacle[0]);
 
-	(*ob).x -= speed;		//바닥속도와 동일
+		(*ob)[i].x -= speed;		//바닥속도와 동일
 
-	if ((*ob).x < 0 - R)	//위치 재 설정
-		(*ob).x = (*itemPos)[0].x;
+		if ((*ob)[i].x < 0 - R)	//위치 재 설정
+			(*ob)[i].x = (*itemPos)[(*ob)[i].pos].x;
 
-	TransparentBlt(hMemDC, (*ob).x, (*ob).y, R, R, hMemDC2, 0, 0, obstacleBit[(*ob).obstaID].bmWidth,
-		obstacleBit[(*ob).obstaID].bmHeight, RGB(255, 0, 255));	//아이템 출력
+		TransparentBlt(hMemDC, (*ob)[i].x, (*ob)[i].y, R, R, hMemDC2, 0, 0, obstacleBit[0].bmWidth,
+			obstacleBit[0].bmHeight, RGB(255, 0, 255));	//아이템 출력
 
-	if (ObstacleCollision(ob, player, R, R / 2))
-		GameOver(hWnd, &time);
+		if (ObstacleCollision(&(*ob)[i], player, R, R / 2))
+			GameOver(hWnd, &time);
+	}
 
 	//ㅡㅡㅡ 플레이어 출력 ㅡㅡㅡ
 	if(*Jump == TRUE||DoubleJump==TRUE)
@@ -225,7 +230,12 @@ void OnTimer(HWND hWnd, struct Character player, BOOL* Jump, struct Item** itemP
 		SelectObject(hMemDC2, hPlayer[i%3]);
 	TransparentBlt(hMemDC, player.x - R, player.y - R, 2 * R, 2 * R, hMemDC2, 0, 0, bit.bmWidth, bit.bmHeight, RGB(255,0,255));
 	i++;
-
+	//속도 증가
+	if (i > 300)
+		speed = 20;
+	if (i > 600)
+		speed = 25;
+	printf("%d ", i);
 	//ㅡㅡㅡ 점수판 출력 ㅡㅡㅡ
 	if (PrintScore == TRUE)
 	{
@@ -278,7 +288,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	static struct Character player;
 	static BOOL Jump = FALSE;
 	static Item* itemPos = (Item*)malloc(sizeof(Item) * (itemNum + 1));
-	static Obstacle ObInfo;
+	static Obstacle* ObInfo = (Obstacle*)malloc(sizeof(Obstacle) * 2);
 
 	switch (uMsg)
 	{
@@ -325,11 +335,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				itemPos[i].y = player.y;
 			}
 			itemPos[0].y = 200;
-
+			itemPos[5].y = 200;
 			//ㅡㅡㅡ 장애물의 좌표값 설정 ㅡㅡ
-			ObInfo.y = rt.bottom / 5 * 3;
-			ObInfo.x = 0;
-
+			ObInfo[0].pos = 0;
+			ObInfo[1].pos = 5;
+			ObInfo[0].y = rt.bottom / 5 * 3;
+			ObInfo[1].y = rt.bottom / 5 * 3;
+			ObInfo[0].x = itemPos[ObInfo[0].pos].x;
+			ObInfo[1].x = itemPos[ObInfo[1].pos].x;
 			break;
 		case 'q':
 			KillTimer(hWnd, 1);
@@ -342,7 +355,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		Jump = TRUE;
 		break;
 	case WM_LBUTTONDBLCLK:
-		printf("**");
 		DoubleJump = TRUE;
 		break;
 	case WM_DESTROY:
