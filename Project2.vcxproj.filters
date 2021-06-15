@@ -48,6 +48,15 @@
     <Image Include="resource\bitmap6.bmp">
       <Filter>리소스 파일</Filter>
     </Image>
+    <Image Include="resource\bitmap7.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="resource\bitmap8.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="resource\bitmap9.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <Media Include="Resource\브금 후보2 (online-audio-converter.com).wav">

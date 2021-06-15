@@ -62,6 +62,12 @@ IDB_BITMAP5             BITMAP                  "Resource\\bitmap5.bmp"
 
 IDB_BITMAP6             BITMAP                  "resource\\bitmap6.bmp"
 
+IDB_BITMAP7             BITMAP                  "resource\\bitmap7.bmp"
+
+IDB_BITMAP8             BITMAP                  "resource\\bitmap8.bmp"
+
+IDB_BITMAP9             BITMAP                  "resource\\bitmap9.bmp"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //

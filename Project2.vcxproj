@@ -156,6 +156,9 @@
     <Image Include="Resource\bitmap3.bmp" />
     <Image Include="Resource\bitmap5.bmp" />
     <Image Include="resource\bitmap6.bmp" />
+    <Image Include="resource\bitmap7.bmp" />
+    <Image Include="resource\bitmap8.bmp" />
+    <Image Include="resource\bitmap9.bmp" />
     <Image Include="Resource\Floor_Default.bmp" />
   </ItemGroup>
   <ItemGroup>
