@@ -14,11 +14,11 @@ LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 void OnTimer(HWND, struct Character, BOOL*, struct Item**);		//메모리 디시를 이용해 hBit에 미리 그려 놓는 함수
 BOOL CheckCollision(int n1, int n2, int m1, int m2);
 void Gravity(struct Character* player, int t);
-BOOL GameOver(int );
+void GameOver(HWND hWnd, int* time);
 void ItemCollision(struct Item* item, struct Character player, int R);	//아이템과 플레이어의 충돌을 감지하는 함수
 
 HINSTANCE hInst;
-BOOL MakeBitmap;
+BOOL MakeBitmap, GAMEOVER = FALSE;
 HBITMAP hPlayer[3],	//플레이어 이미지
 hFloor, hBackground,	//바닥, 배경
 hItem;					//아이템
@@ -77,8 +77,9 @@ void OnTimer(HWND hWnd, struct Character player, BOOL* Jump, struct Item** itemP
 	static int xi, Floor1X, Floor2X, FloorY;	//플레이어의 이동량
 	hDC = GetDC(hWnd);
 	GetClientRect(hWnd, &crt);	//화면의 정보를 구조체에다 담음
-	const int R = crt.bottom / 8, Hole = crt.bottom/3;
-	static int i, w, time, t, yi;
+	const int R = crt.bottom / 8, Hole = crt.bottom/3;	//구멍의 너비
+	static int i, w, time, t, yi, 
+		speed = 15;//속도	20
 	static BOOL GRAVITY = FALSE;
 
 	hBit = CreateCompatibleBitmap(hDC, crt.right, crt.bottom);	//화면 크기의 비트맵을 생성
@@ -88,8 +89,8 @@ void OnTimer(HWND hWnd, struct Character player, BOOL* Jump, struct Item** itemP
 	hMemDC2 = CreateCompatibleDC(hDC);
 
 	xi +=5;	//1씩 증가
-	Floor1X -= 10;	//바닥속도
-	Floor2X -= 10;
+	Floor1X -= speed;	//바닥속도
+	Floor2X -= speed;
 
 	//ㅡㅡㅡ 화면에 배경 출력 ㅡㅡㅡ
 	SelectObject(hMemDC2, hBackground);
@@ -123,7 +124,7 @@ void OnTimer(HWND hWnd, struct Character player, BOOL* Jump, struct Item** itemP
 	{
 		GRAVITY = FALSE;
 		t++;
-		yi = -40 * t + 5 * t * t / 2;
+		yi = -50 * t + 5 * t * t / 2;	//점프속도 50
 		player.y += yi;
 		if (yi == 0)
 		{
@@ -136,6 +137,15 @@ void OnTimer(HWND hWnd, struct Character player, BOOL* Jump, struct Item** itemP
 	if (GRAVITY == TRUE)	//중력작용
 		Gravity(&player, time++);
 	else time = 0;
+	
+	printf("%d %d %d %d %d\n", player.y + R, FloorY, player.x, Floor1X, Floor2X);
+	if (player.y + R > FloorY)
+	{
+		if ((player.x+R/2> Floor1X&&Floor1X>0)|| (player.x + R / 2 > Floor2X && Floor2X > 0))
+			GameOver(hWnd, &time); //플레이어의 위치가 바닥보다 낮을때 바닥과 부딪히면 게임오버
+		//else if(player.x + R < Floor2X && Floor1X < 0)
+		//	GameOver(hWnd, &time); //플레이어의 위치가 바닥보다 낮을때 바닥과 부딪히면 게임오버
+	}
 
 	//ㅡㅡㅡ 화면에 아이템 출력 ㅡㅡㅡ
 
@@ -143,7 +153,7 @@ void OnTimer(HWND hWnd, struct Character player, BOOL* Jump, struct Item** itemP
 
 	for (int i = 0; i < itemNum + 1; ++i)
 	{
-		(*itemPos)[i].x -= 10;		//아이템 속도 -바닥속도와 동일
+		(*itemPos)[i].x -= speed;		//아이템 속도 -바닥속도와 동일
 		if ((*itemPos)[i].x < 0 - R)
 		{
 			(*itemPos)[i].x = crt.right + R;
@@ -162,13 +172,11 @@ void OnTimer(HWND hWnd, struct Character player, BOOL* Jump, struct Item** itemP
 	i++;
 
 	DeleteDC(hMemDC2);
+
 	//ㅡㅡㅡ게임 오버 ㅡㅡㅡ
-	if (GameOver(player.y) == TRUE)
-	{
-		KillTimer(hWnd, 1);
-		PlaySound(MAKEINTRESOURCE(IDR_WAVE2), hInst, SND_RESOURCE | SND_ASYNC);
-		time = 0;
-	}
+	//if (player.y + R > 600)
+	//	GameOver(hWnd, &time);
+
 	//ㅡㅡㅡ 완성된 그림 출력 ㅡㅡㅡ
 	BitBlt(hDC, 0, 0, crt.right	, crt.bottom, hMemDC, 0, 0, SRCCOPY);
 
@@ -246,10 +254,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 BOOL GameOver(int y)
 {
-	BOOL GAMEOVER = FALSE;
-	if (y > 600)
-		GAMEOVER = TRUE;
-	return GAMEOVER;
+	BOOL Gameover = FALSE;
+
+		Gameover = TRUE;
+	return Gameover;
+}
+void GameOver(HWND hWnd, int* time)
+{
+	KillTimer(hWnd, 1);
+	PlaySound(MAKEINTRESOURCE(IDR_WAVE2), hInst, SND_RESOURCE | SND_ASYNC);
+	*time = 0;
 }
 
 BOOL CheckCollision(int n1, int n2, int m1, int m2)
