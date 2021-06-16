@@ -5,7 +5,7 @@
 #include <time.h>
 #include "resource.h"
 
-#pragma comment(linker, "/entry:WinMainCRTStartup /subsystem:console")	//콘솔창 띄움
+//#pragma comment(linker, "/entry:WinMainCRTStartup /subsystem:console")	//콘솔창 띄움
 #pragma comment(lib, "msimg32.lib")
 #pragma comment(lib,"winmm.lib")
 
@@ -23,7 +23,7 @@ void ItemCollision(struct Item* item, struct Character player, int R);	//아이템�
 BOOL ObstacleCollision(struct Obstacle* ob, struct Character player, int pR, int oR);
 
 HINSTANCE hInst;
-BOOL MakeBitmap, GAMEOVER = FALSE, PrintScore = FALSE, DoubleJump = FALSE, ReStart = FALSE;
+BOOL GAMEOVER = FALSE, PrintScore = FALSE, DoubleJump = FALSE, ReStart = FALSE;
 HBITMAP hPlayer[4],	//플레이어 이미지
 hFloor, hBackground,	//바닥, 배경
 hItem,					//아이템
@@ -183,6 +183,23 @@ void OnTimer(HWND hWnd, struct Character player, BOOL* Jump, struct Item** itemP
 			GameOver(hWnd, &time); //플레이어의 위치가 바닥보다 낮을때 바닥과 부딪히면 게임오버
 
 	}
+	//ㅡㅡㅡ 화면에 장애물 출력 ㅡㅡㅡ
+	for (int i = 0; i < 2; ++i)
+	{
+		SelectObject(hMemDC2, hObstacle[0]);
+
+		(*ob)[i].x -= speed;		//바닥속도와 동일
+
+		if ((*ob)[i].x < 0 - R)	//위치 재 설정
+			(*ob)[i].x = (*itemPos)[(*ob)[i].pos].x;
+
+		TransparentBlt(hMemDC, (*ob)[i].x, (*ob)[i].y, R, R, hMemDC2, 0, 0, obstacleBit[0].bmWidth,
+			obstacleBit[0].bmHeight, RGB(255, 0, 255));	//아이템 출력
+
+		if (ObstacleCollision(&(*ob)[i], player, R, R / 2))
+			GameOver(hWnd, &time);
+	}
+
 
 	//ㅡㅡㅡ 화면에 아이템 출력 ㅡㅡㅡ
 
@@ -206,23 +223,6 @@ void OnTimer(HWND hWnd, struct Character player, BOOL* Jump, struct Item** itemP
 		}
 	}
 
-	//ㅡㅡㅡ 화면에 장애물 출력 ㅡㅡㅡ
-	for (int i = 0; i < 2; ++i)
-	{
-		SelectObject(hMemDC2, hObstacle[0]);
-
-		(*ob)[i].x -= speed;		//바닥속도와 동일
-
-		if ((*ob)[i].x < 0 - R)	//위치 재 설정
-			(*ob)[i].x = (*itemPos)[(*ob)[i].pos].x;
-
-		TransparentBlt(hMemDC, (*ob)[i].x, (*ob)[i].y, R, R, hMemDC2, 0, 0, obstacleBit[0].bmWidth,
-			obstacleBit[0].bmHeight, RGB(255, 0, 255));	//아이템 출력
-
-		if (ObstacleCollision(&(*ob)[i], player, R, R / 2))
-			GameOver(hWnd, &time);
-	}
-
 	//ㅡㅡㅡ 플레이어 출력 ㅡㅡㅡ
 	if(*Jump == TRUE||DoubleJump==TRUE)
 		SelectObject(hMemDC2, hPlayer[3]);
@@ -230,12 +230,12 @@ void OnTimer(HWND hWnd, struct Character player, BOOL* Jump, struct Item** itemP
 		SelectObject(hMemDC2, hPlayer[i%3]);
 	TransparentBlt(hMemDC, player.x - R, player.y - R, 2 * R, 2 * R, hMemDC2, 0, 0, bit.bmWidth, bit.bmHeight, RGB(255,0,255));
 	i++;
+
 	//속도 증가
 	if (i > 300)
-		speed = 20;
+		speed = 19;
 	if (i > 600)
-		speed = 25;
-	printf("%d ", i);
+		speed = 22;
 	//ㅡㅡㅡ 점수판 출력 ㅡㅡㅡ
 	if (PrintScore == TRUE)
 	{
@@ -290,6 +290,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	static Item* itemPos = (Item*)malloc(sizeof(Item) * (itemNum + 1));
 	static Obstacle* ObInfo = (Obstacle*)malloc(sizeof(Obstacle) * 2);
 
+	ObInfo[0].pos = 0;
+	ObInfo[1].pos = 5;
+
 	switch (uMsg)
 	{
 	case WM_SIZE:	//윈도우 크기가 변경될때마다 리소스들의 좌표값을 재서정
@@ -297,7 +300,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		GetClientRect(hWnd, &rt);	//화면의 정보를 구조체에다 담음
 		player.x = rt.right/5;
 		player.y = rt.bottom/5*3;
-		MakeBitmap = TRUE;
 
 		hPlayer[0] = (HBITMAP)LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP1));	//플레이어 이미지1
 		hPlayer[1] = (HBITMAP)LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP2));	//플레이어 이미지2
@@ -334,11 +336,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				itemPos[i].x = rt.right / itemNum * i;	//아이템의 위치 정하기
 				itemPos[i].y = player.y;
 			}
-			itemPos[0].y = 200;
-			itemPos[5].y = 200;
+			itemPos[ObInfo[0].pos].y = 200;
+			itemPos[ObInfo[1].pos].y = 200;
 			//ㅡㅡㅡ 장애물의 좌표값 설정 ㅡㅡ
-			ObInfo[0].pos = 0;
-			ObInfo[1].pos = 5;
 			ObInfo[0].y = rt.bottom / 5 * 3;
 			ObInfo[1].y = rt.bottom / 5 * 3;
 			ObInfo[0].x = itemPos[ObInfo[0].pos].x;
@@ -394,7 +394,6 @@ void ItemCollision(struct Item* item, struct Character player, int R)
 	if ((R * R) >= ((item->x - player.x) * (item->x - player.x) + (item->y - player.y) * (item->y - player.y)))
 	{
 		item_count++;
-		printf("솜: %d\n", item_count);
 		item->visible = FALSE;
 	}
 }
